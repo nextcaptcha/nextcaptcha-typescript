@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "NextCaptcha Captcha Solving Service Api Wrapper for Typescript to solving recaptcha v2, v3,recapthcha moible,hcaptcha,funcaptcha",
   "main": "dist/index.js",
-  "repository": "https://github.com/nextcaptcha/nextcaptcha-typescript",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/nextcaptcha.git"
+  },
   "license": "MIT",
   "author": "nextcaptcha",
   "bugs": {
@@ -22,13 +25,10 @@
     "hcaptcha solver",
     "funcaptcha solver"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/nextcaptcha.git"
-  },
   "scripts": {
     "build": "tsc",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "test": "jest"
   },
   "files": [
     "dist"
@@ -37,7 +37,10 @@
     "axios": "^1.6.8"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "@types/node": "^16.11.45",
+    "dotenv": "^16.4.5",
+    "ts-jest": "^29.1.2",
     "typescript": "^4.7.4"
   }
 }

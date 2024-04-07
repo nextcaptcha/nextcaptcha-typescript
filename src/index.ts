@@ -1,14 +1,15 @@
 import axios, {AxiosInstance} from 'axios';
+import {IFunCaptchaTask, IHCaptchaTask, IRecaptchaMobileTask, IReCaptchaV2Task, IReCaptchaV3Task} from "./interface";
 
 // Define constants representing different types of captcha tasks
 const RECAPTCHAV2_TYPE = "RecaptchaV2TaskProxyless";
 const RECAPTCHAV2_ENTERPRISE_TYPE = "RecaptchaV2EnterpriseTaskProxyless";
 const RECAPTCHAV3_PROXYLESS_TYPE = "RecaptchaV3TaskProxyless";
 const RECAPTCHAV3_TYPE = "RecaptchaV3Task";
-const RECAPTCHA_MOBILE_TYPE = "RecaptchaMobileProxyless";
+const RECAPTCHA_MOBILE_TYPE = "RecaptchaMobileTaskProxyless";
+const HCAPTCHA_ENTERPRISE_TYPE = "HCaptchaEnterpriseTask";
 const HCAPTCHA_TYPE = "HCaptchaTask";
 const HCAPTCHA_PROXYLESS_TYPE = "HCaptchaTaskProxyless";
-const HCAPTCHA_ENTERPRISE_TYPE = "HCaptchaEnterpriseTask";
 const FUNCAPTCHA_TYPE = "FunCaptchaTask";
 const FUNCAPTCHA_PROXYLESS_TYPE = "FunCaptchaTaskProxyless";
 
@@ -27,273 +28,289 @@ class TaskBadParametersError extends Error {
 
 // Define the ApiClient class for communicating with the NextCaptcha API
 class ApiClient {
-    private client: AxiosInstance;
+  private client: AxiosInstance;
+  private readonly clientKey: string;
 
-    constructor(apiKey: string) {
-        // Initialize the Axios client with the API base URL and API key
-        this.client = axios.create({
-            baseURL: "https://api.nextcaptcha.com",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey,
-            },
-        });
-    }
+  constructor(apiKey: string) {
+    // Initialize the Axios client with the API base URL and API key
+    this.clientKey = apiKey;
+    this.client = axios.create({
+      baseURL: "https://api.nextcaptcha.com",
+    });
+  }
 
-    // Send a task to the NextCaptcha API
-    async send(task: any): Promise<any> {
-        try {
-            // Send a POST request to the /createTask endpoint with the task data
-            const response = await this.client.post("/createTask", task);
-            return response.data;
-        } catch (error) {
-            console.error("Error creating task:", error);
-            throw error;
-        }
+  // Send a task to the NextCaptcha API
+  async send(task: any): Promise<any> {
+    try {
+      // Send a POST request to the /createTask endpoint with the task data
+      const response = await this.client.post("/createTask", {
+        clientKey: this.clientKey,
+        task
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error creating task:", error);
+      throw error;
     }
+  }
 
-    // Get the result of a task from the NextCaptcha API
-    async getTaskResult(taskId: string): Promise<any> {
-        try {
-            // Send a POST request to the /getTaskResult endpoint with the task ID
-            const response = await this.client.post("/getTaskResult", {taskId});
-            return response.data;
-        } catch (error) {
-            console.error("Error getting task result:", error);
-            throw error;
-        }
+  // Get the result of a task from the NextCaptcha API
+  async getTaskResult(taskId: string): Promise<any> {
+    try {
+      // Send a POST request to the /getTaskResult endpoint with the task ID
+      const response = await this.client.post("/getTaskResult", {
+        clientKey: this.clientKey,
+        taskId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error getting task result:", error);
+      throw error;
     }
+  }
 
-    // Get the account balance from the NextCaptcha API
-    async getBalance(): Promise<string> {
-        try {
-            // Send a POST request to the /getBalance endpoint
-            const response = await this.client.post("/getBalance");
-            return response.data.balance;
-        } catch (error) {
-            console.error("Error getting balance:", error);
-            throw error;
-        }
+  // Get the account balance from the NextCaptcha API
+  async getBalance(): Promise<number> {
+    try {
+      // Send a POST request to the /getBalance endpoint
+      const response = await this.client.post("/getBalance", {
+        clientKey: this.clientKey,
+      });
+      return response?.data?.balance;
+    } catch (error) {
+      console.error("Error getting balance:", error);
+      throw error;
     }
+  }
 }
 
 // Define the NextCaptcha class for interacting with the NextCaptcha service
-class NextCaptcha {
-    private api: ApiClient;
+export class NextCaptcha {
+  private api: ApiClient;
 
-    constructor(apiKey: string) {
-        // Initialize the ApiClient with the provided API key
-        this.api = new ApiClient(apiKey);
+  constructor(apiKey: string) {
+    // Initialize the ApiClient with the provided API key
+    this.api = new ApiClient(apiKey);
+  }
+
+  // Wait for a task to complete and return the result
+  async waitForResult(taskId: string, tryTimes = 0): Promise<any> {
+    // Get the task result from the API
+    const result = await this.api.getTaskResult(taskId);
+
+    // Check the task status
+    if (result.status === READY_STATUS) {
+      // Task is completed successfully
+      console.info(`Task ${taskId} completed in ${tryTimes} seconds`);
+      return result;
+    } else if (result.status === FAILED_STATUS) {
+      // Task failed
+      console.error(`Task ${taskId} failed`);
+      throw new Error("Task failed");
+    } else if (tryTimes > TIMEOUT) {
+      // Task timed out
+      console.error(`Task ${taskId} timed out`);
+      throw new Error("Task timed out");
+    } else {
+      // Task is still pending or processing, wait for a short interval before checking again
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return this.waitForResult(taskId, tryTimes++)
+    }
+  }
+
+  // Solve a reCAPTCHA v2 task
+  async recaptchaV2(
+    {
+      websiteURL,
+      websiteKey,
+      recaptchaDataSValue,
+      isInvisible,
+      apiDomain,
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IReCaptchaV2Task
+  ): Promise<any> {
+    const task: any = {
+      type: RECAPTCHAV2_TYPE,
+      websiteURL,
+      websiteKey,
+      recaptchaDataSValue,
+      isInvisible,
+      apiDomain,
+    };
+
+    if (proxyAddress) {
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
     }
 
-    // Wait for a task to complete and return the result
-    async waitForResult(taskId: string): Promise<any> {
-        console.log(`Waiting for task ${taskId} to complete...`);
-        const startTime = Date.now();
+    // Send the task to the API and wait for the result
+    const taskId = (await this.api.send(task))?.taskId;
 
-        while (true) {
-            // Get the task result from the API
-            const result = await this.api.getTaskResult(taskId);
+    return this.waitForResult(taskId);
+  }
 
-            // Check the task status
-            if (result.status === READY_STATUS) {
-                // Task is completed successfully
-                console.info(`Task ${taskId} completed in ${(Date.now() - startTime) / 1000} seconds`);
-                return result;
-            } else if (result.status === FAILED_STATUS) {
-                // Task failed
-                console.error(`Task ${taskId} failed`);
-                throw new Error("Task failed");
-            } else if (Date.now() - startTime >= TIMEOUT * 1000) {
-                // Task timed out
-                console.error(`Task ${taskId} timed out`);
-                throw new Error("Task timed out");
-            } else {
-                // Task is still pending or processing, wait for a short interval before checking again
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-        }
+  // Solve a reCAPTCHA v3 task
+  async recaptchaV3(
+    {
+      websiteURL,
+      websiteKey,
+      pageAction,
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IReCaptchaV3Task
+  ): Promise<any> {
+    const task: any = {
+      type: proxyAddress ? RECAPTCHAV3_TYPE : RECAPTCHAV3_PROXYLESS_TYPE,
+      websiteURL: websiteURL,
+      websiteKey: websiteKey,
+      pageAction: pageAction,
+    };
+
+    if (proxyAddress) {
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
     }
+    // Send the task to the API and wait for the result
+    const taskId = (await this.api.send(task)).taskId;
+    return this.waitForResult(taskId);
+  }
 
-    // Solve a reCAPTCHA v2 task
-    async recaptchaV2(
-        websiteURL: string,
-        websiteKey: string,
-        minScore: number = 0.3,
-        proxyType: string = "",
-        proxyAddress: string = "",
-        proxyPort: number = 0,
-        proxyLogin: string = "",
-        proxyPassword: string = ""
-    ): Promise<any> {
-        const task: any = {
-            type: RECAPTCHAV2_TYPE,
-            websiteURL: websiteURL,
-            websiteKey: websiteKey,
-            minScore: minScore,
-        };
+  // Solve a reCAPTCHA mobile task
+  async recaptchaMobile(
+    {
+      appPackageName,
+      appKey,
+      appAction,
+      appDevice
+    }: IRecaptchaMobileTask
+  ): Promise<any> {
+    const task = {
+      type: RECAPTCHA_MOBILE_TYPE,
+      appPackageName,
+      appKey,
+      appAction,
+      appDevice
+    };
 
-        if (proxyAddress) {
-            task.type = RECAPTCHAV2_ENTERPRISE_TYPE;
-            task.proxyType = proxyType;
-            task.proxyAddress = proxyAddress;
-            task.proxyPort = proxyPort;
-            task.proxyLogin = proxyLogin;
-            task.proxyPassword = proxyPassword;
-        }
+    // Send the task to the API and wait for the result
+    const taskId = (await this.api.send(task)).taskId;
+    return this.waitForResult(taskId);
+  }
 
-        // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
+  // Solve an hCaptcha task
+  async hcaptcha(
+    {
+      websiteURL,
+      websiteKey,
+      enterprisePayload = {},
+      isInvisible = false,
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IHCaptchaTask
+  ): Promise<any> {
+    const task: any = {
+      type: proxyAddress ? HCAPTCHA_TYPE : HCAPTCHA_PROXYLESS_TYPE,
+      websiteURL: websiteURL,
+      websiteKey: websiteKey,
+      isInvisible: isInvisible,
+      enterprisePayload: enterprisePayload,
+    };
+    if (proxyAddress) {
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
     }
-
-    // Solve a reCAPTCHA v3 task
-    async recaptchaV3(
-        websiteURL: string,
-        websiteKey: string,
-        pageAction: string,
-        minScore: number = 0.3,
-        proxyType: string = "",
-        proxyAddress: string = "",
-        proxyPort: number = 0,
-        proxyLogin: string = "",
-        proxyPassword: string = ""
-    ): Promise<any> {
-        const task: any = {
-            type: RECAPTCHAV3_PROXYLESS_TYPE,
-            websiteURL: websiteURL,
-            websiteKey: websiteKey,
-            pageAction: pageAction,
-            minScore: minScore,
-        };
-
-        if (proxyAddress) {
-            task.type = RECAPTCHAV3_TYPE;
-            task.proxyType = proxyType;
-            task.proxyAddress = proxyAddress;
-            task.proxyPort = proxyPort;
-            task.proxyLogin = proxyLogin;
-            task.proxyPassword = proxyPassword;
-        }
-
-        // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
-    }
-
-    // Solve a reCAPTCHA mobile task
-    async recaptchaMobile(
-        websiteURL: string,
-        websiteKey: string,
-        invisibleMode: boolean = false
-    ): Promise<any> {
-        const task = {
-            type: RECAPTCHA_MOBILE_TYPE,
-            websiteURL: websiteURL,
-            websiteKey: websiteKey,
-            isInvisible: invisibleMode,
-        };
-
-        // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
-    }
-
-    // Solve an hCaptcha task
-    async hcaptcha(
-        websiteURL: string,
-        websiteKey: string,
-        enterprisePayload: any = {},
-        isInvisible: boolean = false,
-        proxyType: string = "",
-        proxyAddress: string = "",
-        proxyPort: number = 0,
-        proxyLogin: string = "",
-        proxyPassword: string = ""
-    ): Promise<any> {
-        const task: any = {
-            type: HCAPTCHA_PROXYLESS_TYPE,
-            websiteURL: websiteURL,
-            websiteKey: websiteKey,
-            isInvisible: isInvisible,
-            enterprisePayload: enterprisePayload,
-        };
-        if (proxyAddress) {
-            task.type = HCAPTCHA_TYPE;
-            task.proxyType = proxyType;
-            task.proxyAddress = proxyAddress;
-            task.proxyPort = proxyPort;
-            task.proxyLogin = proxyLogin;
-            task.proxyPassword = proxyPassword;
-        }
 
 // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
+    const taskId = (await this.api.send(task)).taskId;
+    return this.waitForResult(taskId);
+  }
+  async hcaptchaEnterprise(
+    {
+      websiteURL,
+      websiteKey,
+      enterprisePayload = {},
+      isInvisible = false,
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IHCaptchaTask
+  ): Promise<any> {
+    const task: any = {
+      type: HCAPTCHA_ENTERPRISE_TYPE,
+      websiteURL: websiteURL,
+      websiteKey: websiteKey,
+      isInvisible: isInvisible,
+      enterprisePayload: enterprisePayload,
+    };
+    if (proxyAddress) {
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
     }
-
-    // Solve an hCaptcha Enterprise task
-    async hcaptchaEnterprise(
-        websiteURL: string,
-        websiteKey: string,
-        enterprisePayload: any = {},
-        isInvisible: boolean = false,
-        proxyType: string = "",
-        proxyAddress: string = "",
-        proxyPort: number = 0,
-        proxyLogin: string = "",
-        proxyPassword: string = ""
-    ): Promise<any> {
-        const task = {
-            type: HCAPTCHA_ENTERPRISE_TYPE,
-            websiteURL: websiteURL,
-            websiteKey: websiteKey,
-            enterprisePayload: enterprisePayload,
-            isInvisible: isInvisible,
-            proxyType: proxyType,
-            proxyAddress: proxyAddress,
-            proxyPort: proxyPort,
-            proxyLogin: proxyLogin,
-            proxyPassword: proxyPassword,
-        };
-        // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
-    }
-
-    // Solve a FunCaptcha task
-    async funcaptcha(
-        websitePublicKey: string,
-        websiteURL: string = "",
-        data: string = "",
-        proxyType: string = "",
-        proxyAddress: string = "",
-        proxyPort: number = 0,
-        proxyLogin: string = "",
-        proxyPassword: string = ""
-    ): Promise<any> {
-        const task: any = {
-            type: FUNCAPTCHA_PROXYLESS_TYPE,
-            websiteURL: websiteURL,
-            websitePublicKey: websitePublicKey,
-            data: data,
-        };
-        if (proxyAddress) {
-            task.type = FUNCAPTCHA_TYPE;
-            task.proxyType = proxyType;
-            task.proxyAddress = proxyAddress;
-            task.proxyPort = proxyPort;
-            task.proxyLogin = proxyLogin;
-            task.proxyPassword = proxyPassword;
-        }
 
 // Send the task to the API and wait for the result
-        const taskId = await this.api.send(task);
-        return this.waitForResult(taskId);
+    const taskId = (await this.api.send(task)).taskId;
+    return this.waitForResult(taskId);
+  }
+
+
+  // Solve a FunCaptcha task
+  async funcaptcha(
+    {
+      websitePublicKey ,
+      websiteURL = "",
+      data = "",
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IFunCaptchaTask
+  ): Promise<any> {
+    const task: any = {
+      type: proxyAddress ? FUNCAPTCHA_TYPE : FUNCAPTCHA_PROXYLESS_TYPE,
+      websiteURL,
+      websitePublicKey,
+      data,
+    };
+    if (proxyAddress) {
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
     }
 
-    // Get the account balance
-    async getBalance(): Promise<string> {
-        return this.api.getBalance();
-    }
+// Send the task to the API and wait for the result
+    const taskId = (await this.api.send(task)).taskId;
+    return this.waitForResult(taskId);
+  }
+
+  // Get the account balance
+  async getBalance(): Promise<number> {
+    return this.api.getBalance();
+  }
 }
