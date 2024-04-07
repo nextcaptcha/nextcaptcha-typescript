@@ -1,6 +1,6 @@
 {
   "name": "nextcaptcha-ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NextCaptcha Captcha Solving Service Api Wrapper for Typescript to solving recaptcha v2, v3,recapthcha moible,hcaptcha,funcaptcha",
   "main": "dist/index.js",
   "repository": {
