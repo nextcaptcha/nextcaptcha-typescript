@@ -21,7 +21,7 @@ To start using the NextCaptcha Node.js SDK, you first need to obtain your API ke
 you can create a NextCaptcha instance:
 
 ```typescript
-import {NextCaptcha} from 'nextcaptcha';
+import NextCaptcha from 'nextcaptcha-ts';
 
 const apiKey = 'YOUR_API_KEY';
 const nextCaptcha = new NextCaptcha(apiKey);
@@ -32,48 +32,48 @@ Solving reCAPTCHA v2
 To solve reCAPTCHA v2 challenges, use the recaptchaV2 method:
 
 ```typescript
-const result = await nextCaptcha.recaptchaV2(websiteURL, websiteKey);
+const result = await nextCaptcha.recaptchaV2({websiteURL, websiteKey});
 ```
 
 Solving reCAPTCHA v3
 To solve reCAPTCHA v3 challenges, use the recaptchaV3 method:
 
 ```typescript
-const result = await nextCaptcha.recaptchaV3(websiteURL, websiteKey, pageAction);
+const result = await nextCaptcha.recaptchaV3({websiteURL, websiteKey, pageAction});
 ```
 
 Solving reCAPTCHA Mobile
 To solve reCAPTCHA Mobile challenges, use the recaptchaMobile method:
 
 ```typescript
-const result = await nextCaptcha.recaptchaMobile(websiteURL, websiteKey);
+const result = await nextCaptcha.recaptchaMobile({websiteURL, websiteKey});
 ```
 
 Solving hCaptcha
 To solve hCaptcha challenges, use the hcaptcha method:
 
 ```typescript
-const result = await nextCaptcha.hcaptcha(websiteURL, websiteKey);
+const result = await nextCaptcha.hcaptcha({websiteURL, websiteKey});
 ```
 
 Solving hCaptcha Enterprise
 To solve hCaptcha Enterprise challenges, use the hcaptchaEnterprise method:
 
-```
-const result = await nextCaptcha.hcaptchaEnterprise(websiteURL, websiteKey, enterprisePayload);
+```typescript
+const result = await nextCaptcha.hcaptchaEnterprise({websiteURL, websiteKey, enterprisePayload});
 ```
 
 Solving FunCaptcha
 To solve FunCaptcha challenges, use the funcaptcha method:
 
-```
-const result = await nextCaptcha.funcaptcha(websitePublicKey);
+```typescript
+const result = await nextCaptcha.funcaptcha({websitePublicKey, websiteURL});
 ```
 
 Checking Account Balance
 To check your NextCaptcha account balance, use the getBalance method:
 
-```
+```typescript
 const balance = await nextCaptcha.getBalance();
 console.log(`Account balance: ${balance}`);
 ```

@@ -1,5 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
-import {NextCaptcha} from '../src'
+import NextCaptcha from '../src'
 
 require('dotenv').config();
 

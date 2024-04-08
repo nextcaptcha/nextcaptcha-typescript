@@ -3,7 +3,6 @@ import {IFunCaptchaTask, IHCaptchaTask, IRecaptchaMobileTask, IReCaptchaV2Task, 
 
 // Define constants representing different types of captcha tasks
 const RECAPTCHAV2_TYPE = "RecaptchaV2TaskProxyless";
-const RECAPTCHAV2_ENTERPRISE_TYPE = "RecaptchaV2EnterpriseTaskProxyless";
 const RECAPTCHAV3_PROXYLESS_TYPE = "RecaptchaV3TaskProxyless";
 const RECAPTCHAV3_TYPE = "RecaptchaV3Task";
 const RECAPTCHA_MOBILE_TYPE = "RecaptchaMobileTaskProxyless";
@@ -17,14 +16,9 @@ const FUNCAPTCHA_PROXYLESS_TYPE = "FunCaptchaTaskProxyless";
 const TIMEOUT = 45;
 
 // Define constants representing different task statuses
-const PENDING_STATUS = "pending";
-const PROCESSING_STATUS = "processing";
 const READY_STATUS = "ready";
 const FAILED_STATUS = "failed";
 
-// Define a custom error class
-class TaskBadParametersError extends Error {
-}
 
 // Define the ApiClient class for communicating with the NextCaptcha API
 class ApiClient {
@@ -85,7 +79,7 @@ class ApiClient {
 }
 
 // Define the NextCaptcha class for interacting with the NextCaptcha service
-export class NextCaptcha {
+export default class NextCaptcha {
   private api: ApiClient;
 
   constructor(apiKey: string) {
