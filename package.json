@@ -1,8 +1,8 @@
 {
   "name": "nextcaptcha-ts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "NextCaptcha Captcha Solving Service Api Wrapper for Typescript to solving recaptcha v2, v3,recapthcha moible,hcaptcha,funcaptcha",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-username/nextcaptcha.git"
@@ -13,7 +13,7 @@
     "url": "https://github.com/nextcaptcha/nextcaptcha-typescript/issues"
   },
   "homepage": "https://github.com/nextcaptcha/nextcaptcha-typescript",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "keywords": [
     "nextcaptcha",
     "api",
