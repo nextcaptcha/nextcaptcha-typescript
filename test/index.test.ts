@@ -24,6 +24,18 @@ describe('client', () => {
     expect(typeof result?.solution?.gRecaptchaResponse).toEqual('string');
   });
 
+  test('recaptchaV2Enterprise', async () => {
+    const result = await client.recaptchaV2Enterprise({
+      websiteKey: '6LddGoYgAAAAAHD275rVBjuOYXiofr1u4pFS5lHn',
+      websiteURL: 'https://onlyfans.com',
+      isInvisible: false,
+      pageAction: 'register'
+    });
+    expect(result?.errorId).toEqual(0);
+    expect(result?.status).toEqual('ready');
+    expect(typeof result?.solution?.gRecaptchaResponse).toEqual('string');
+  });
+
   test('recaptchaV3Proxyless', async () => {
     const result = await client.recaptchaV3({
       websiteKey: '6LdKlZEpAAAAAAOQjzC2v_d36tWxCl6dWsozdSy9',

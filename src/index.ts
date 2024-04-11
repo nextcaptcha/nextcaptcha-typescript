@@ -3,6 +3,8 @@ import {IFunCaptchaTask, IHCaptchaTask, IRecaptchaMobileTask, IReCaptchaV2Task, 
 
 // Define constants representing different types of captcha tasks
 const RECAPTCHAV2_TYPE = "RecaptchaV2TaskProxyless";
+const RECAPTCHAV2_ENTERPRISE_PROXYLESS_TYPE = "RecaptchaV2EnterpriseTaskProxyless";
+const RECAPTCHAV2_ENTERPRISE_TYPE = "RecaptchaV2EnterpriseTask";
 const RECAPTCHAV3_PROXYLESS_TYPE = "RecaptchaV3TaskProxyless";
 const RECAPTCHAV3_TYPE = "RecaptchaV3Task";
 const RECAPTCHA_MOBILE_TYPE = "RecaptchaMobileTaskProxyless";
@@ -145,7 +147,46 @@ export default class NextCaptcha {
     }
 
     // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task))?.taskId;
+    const taskId = (await this.api.send(cleanObject(task)))?.taskId;
+
+    return this.waitForResult(taskId);
+  }
+  async recaptchaV2Enterprise(
+    {
+      websiteURL,
+      websiteKey,
+      enterprisePayload,
+      pageAction,
+      isInvisible,
+      apiDomain,
+      proxyType = "",
+      proxyAddress = "",
+      proxyPort = 0,
+      proxyLogin = "",
+      proxyPassword = ""
+    }: IReCaptchaV2Task
+  ): Promise<any> {
+    const task: any = {
+      type: RECAPTCHAV2_ENTERPRISE_PROXYLESS_TYPE,
+      websiteURL,
+      websiteKey,
+      enterprisePayload,
+      isInvisible,
+      apiDomain,
+      pageAction
+    };
+
+    if (proxyAddress) {
+      task.type = RECAPTCHAV2_ENTERPRISE_TYPE;
+      task.proxyType = proxyType;
+      task.proxyAddress = proxyAddress;
+      task.proxyPort = proxyPort;
+      task.proxyLogin = proxyLogin;
+      task.proxyPassword = proxyPassword;
+    }
+
+    // Send the task to the API and wait for the result
+    const taskId = (await this.api.send(cleanObject(task)))?.taskId;
 
     return this.waitForResult(taskId);
   }
@@ -178,7 +219,7 @@ export default class NextCaptcha {
       task.proxyPassword = proxyPassword;
     }
     // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task)).taskId;
+    const taskId = (await this.api.send(cleanObject(task))).taskId;
     return this.waitForResult(taskId);
   }
 
@@ -200,7 +241,7 @@ export default class NextCaptcha {
     };
 
     // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task)).taskId;
+    const taskId = (await this.api.send(cleanObject(task))).taskId;
     return this.waitForResult(taskId);
   }
 
@@ -234,7 +275,7 @@ export default class NextCaptcha {
     }
 
 // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task)).taskId;
+    const taskId = (await this.api.send(cleanObject(task))).taskId;
     return this.waitForResult(taskId);
   }
   async hcaptchaEnterprise(
@@ -266,7 +307,7 @@ export default class NextCaptcha {
     }
 
 // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task)).taskId;
+    const taskId = (await this.api.send(cleanObject(task))).taskId;
     return this.waitForResult(taskId);
   }
 
@@ -299,7 +340,7 @@ export default class NextCaptcha {
     }
 
 // Send the task to the API and wait for the result
-    const taskId = (await this.api.send(task)).taskId;
+    const taskId = (await this.api.send(cleanObject(task))).taskId;
     return this.waitForResult(taskId);
   }
 
@@ -307,4 +348,12 @@ export default class NextCaptcha {
   async getBalance(): Promise<number> {
     return this.api.getBalance();
   }
+}
+function cleanObject(obj: any) {
+  return Object.entries(obj).reduce((acc: any, [key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
 }

@@ -3,6 +3,8 @@ export interface IReCaptchaV2Task {
   websiteKey: string;
   recaptchaDataSValue?: string;
   isInvisible?: boolean;
+  enterprisePayload?: string;
+  pageAction?: string;
   apiDomain?: string;
   proxyType?: string;
   proxyAddress?: string;
